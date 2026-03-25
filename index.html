@@ -533,7 +533,7 @@
   })();
 
   function initState() {
-    layers = { root: { id:'root', type:'Root', label:'Applicant Company', parentId:null, layer:0, ownPct:100, effPct:100, children:[], data:{ legalName:'', tradeName:'', regNumber:'', jurisdiction:'', incorporationDate:'', entityType:'', address:'', notes:'' } } };
+    layers = { root: { id:'root', type:'Root', label:'Applicant Company', parentId:null, layer:0, ownPct:100, effPct:100, children:[], data:{ legalName:'', tradeName:'', regNumber:'', jurisdiction:'', incorporationDate:'', entityType:'', address:'', controllers:'', notes:'' } } };
     activeLayerId = 'root'; addFormOpen = {}; idCounter = 0; docStore = {}; extractState = {};
   }
   initState();
@@ -742,7 +742,7 @@
     let fieldsHtml='';
 
     if(isEntity){
-      const fields=[{key:'legalName',label:'Legal Name',val:ext.legalName},{key:'tradeName',label:'Trade Name',val:ext.tradeName},{key:'regNumber',label:'Registration Number',val:ext.regNumber},{key:'jurisdiction',label:'Jurisdiction',val:ext.jurisdiction},{key:'incorporationDate',label:'Incorporation Date',val:ext.incorporationDate,type:'date'},{key:'entityType',label:'Entity Type',val:ext.entityType,type:'select'},{key:'address',label:'Registered Address',val:ext.address,full:true}];
+      const fields=[{key:'legalName',label:'Legal Name',val:ext.legalName},{key:'tradeName',label:'Trade Name',val:ext.tradeName},{key:'regNumber',label:'Registration Number',val:ext.regNumber},{key:'jurisdiction',label:'Jurisdiction',val:ext.jurisdiction},{key:'incorporationDate',label:'Incorporation Date',val:ext.incorporationDate,type:'date'},{key:'entityType',label:'Entity Type',val:ext.entityType,type:'select'},{key:'address',label:'Registered Address',val:ext.address,full:true},{key:'controllers',label:'Controllers / Directors / Signatories',val:ext.controllers,full:true}];
       fieldsHtml=fields.map(f=>{
         const hasVal=f.val&&String(f.val).trim();
         const cls=hasVal?'review-field-changed':'';
@@ -751,6 +751,15 @@
         if(f.type==='date')return `<div class="fg${full} ${cls}"><label class="fl">${f.label}</label><input class="inp" type="date" data-review-field="${f.key}" value="${f.val||''}"/></div>`;
         return `<div class="fg${full} ${cls}"><label class="fl">${f.label}</label><input class="inp" data-review-field="${f.key}" value="${esc(f.val||'')}" placeholder="Not detected…"/></div>`;
       }).join('');
+
+      // Shareholders extracted
+      const shareholders = ext.shareholders || [];
+      if (shareholders.length > 0) {
+        fieldsHtml += `<div class="fg-full" style="grid-column:1/-1;margin-top:8px;"><label class="fl" style="margin-bottom:6px;">Extracted Shareholders</label><div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;overflow:hidden;"><table class="sh-table" style="margin:0;"><thead><tr><th>Name</th><th>Type</th><th>Ownership %</th><th>Include</th></tr></thead><tbody>${shareholders.map((sh,i) => {
+          const pct = typeof sh.ownershipPct === 'number' ? sh.ownershipPct : parseFloat(sh.ownershipPct) || 0;
+          return `<tr><td><span class="sh-type-dot sh-type-dot--${(sh.type||'').toLowerCase()==='individual'?'individual':'entity'}"></span><input class="inp" data-sh-name="${i}" value="${esc(sh.name||'')}" style="height:28px;font-size:10px;display:inline;width:auto;min-width:120px;"/></td><td><select class="sel" data-sh-type="${i}" style="height:28px;font-size:10px;width:100px;"><option value="Entity" ${sh.type==='Entity'?'selected':''}>Entity</option><option value="Individual" ${sh.type==='Individual'?'selected':''}>Individual</option></select></td><td><input class="inp" type="number" data-sh-pct="${i}" value="${pct.toFixed(2)}" step="0.01" min="0" max="100" style="height:28px;font-size:10px;width:80px;"/></td><td style="text-align:center;"><input type="checkbox" data-sh-include="${i}" checked style="cursor:pointer;"/></td></tr>`;
+        }).join('')}</tbody></table></div><div style="font-family:var(--fm);font-size:9px;color:var(--txt-mute);margin-top:4px;">Uncheck any shareholder you don't want to add. Edit names, types, and percentages as needed.</div></div>`;
+      }
     } else {
       const fields=[{key:'fullName',label:'Full Name',val:ext.fullName},{key:'nationality',label:'Nationality',val:ext.nationality},{key:'dob',label:'Date of Birth',val:ext.dob,type:'date'},{key:'idType',label:'ID Type',val:ext.idType,type:'select'},{key:'idNumber',label:'ID Number',val:ext.idNumber},{key:'idExpiry',label:'ID Expiry',val:ext.idExpiry,type:'date'},{key:'address',label:'Residential Address',val:ext.address,full:true}];
       fieldsHtml=fields.map(f=>{
@@ -775,7 +784,7 @@
     if(n.type==='Individual'){
       fieldsHtml=`<div class="form-grid"><div class="fg"><label class="fl">Full Name</label><input class="inp" data-field="fullName" value="${esc(n.data.fullName||'')}" placeholder="Full legal name…"/></div><div class="fg"><label class="fl">Nationality</label><input class="inp" data-field="nationality" value="${esc(n.data.nationality||'')}" placeholder="e.g. UAE, UK, US…"/></div><div class="fg"><label class="fl">Date of Birth</label><input class="inp" type="date" data-field="dob" value="${n.data.dob||''}"/></div><div class="fg"><label class="fl">ID Type</label><select class="sel" data-field="idType"><option value="">Select…</option><option value="passport" ${n.data.idType==='passport'?'selected':''}>Passport</option><option value="nationalId" ${n.data.idType==='nationalId'?'selected':''}>National ID</option><option value="residenceVisa" ${n.data.idType==='residenceVisa'?'selected':''}>Residence Visa</option></select></div><div class="fg"><label class="fl">ID Number</label><input class="inp" data-field="idNumber" value="${esc(n.data.idNumber||'')}" placeholder="Document number…"/></div><div class="fg"><label class="fl">ID Expiry</label><input class="inp" type="date" data-field="idExpiry" value="${n.data.idExpiry||''}"/></div><div class="fg fg-full"><label class="fl">Residential Address</label><input class="inp" data-field="address" value="${esc(n.data.address||'')}" placeholder="Full residential address…"/></div><div class="fg fg-full"><label class="fl">Notes <span class="fl-opt">(optional)</span></label><textarea class="ta" data-field="notes" placeholder="Additional notes…">${esc(n.data.notes||'')}</textarea></div></div>`;
     } else {
-      fieldsHtml=`<div class="form-grid"><div class="fg"><label class="fl">Legal Name</label><input class="inp" data-field="legalName" value="${esc(n.data.legalName||'')}" placeholder="Registered legal name…"/></div><div class="fg"><label class="fl">Trade Name <span class="fl-opt">(optional)</span></label><input class="inp" data-field="tradeName" value="${esc(n.data.tradeName||'')}" placeholder="DBA / trade name…"/></div><div class="fg"><label class="fl">Registration Number</label><input class="inp" data-field="regNumber" value="${esc(n.data.regNumber||'')}" placeholder="License / reg #…"/></div><div class="fg"><label class="fl">Jurisdiction</label><input class="inp" data-field="jurisdiction" value="${esc(n.data.jurisdiction||'')}" placeholder="e.g. DIFC, ADGM, BVI…"/></div><div class="fg"><label class="fl">Incorporation Date</label><input class="inp" type="date" data-field="incorporationDate" value="${n.data.incorporationDate||''}"/></div><div class="fg"><label class="fl">Entity Type</label><select class="sel" data-field="entityType"><option value="">Select…</option><option value="llc" ${n.data.entityType==='llc'?'selected':''}>LLC</option><option value="fzllc" ${n.data.entityType==='fzllc'?'selected':''}>Free Zone LLC</option><option value="shareholding" ${n.data.entityType==='shareholding'?'selected':''}>Shareholding Co.</option><option value="holding" ${n.data.entityType==='holding'?'selected':''}>Holding Company</option><option value="soleEstablishment" ${n.data.entityType==='soleEstablishment'?'selected':''}>Sole Establishment</option><option value="branch" ${n.data.entityType==='branch'?'selected':''}>Branch</option><option value="trust" ${n.data.entityType==='trust'?'selected':''}>Trust</option><option value="foundation" ${n.data.entityType==='foundation'?'selected':''}>Foundation</option><option value="other" ${n.data.entityType==='other'?'selected':''}>Other</option></select></div><div class="fg fg-full"><label class="fl">Registered Address</label><input class="inp" data-field="address" value="${esc(n.data.address||'')}" placeholder="Full registered address…"/></div><div class="fg fg-full"><label class="fl">Notes <span class="fl-opt">(optional)</span></label><textarea class="ta" data-field="notes" placeholder="Additional notes…">${esc(n.data.notes||'')}</textarea></div></div>`;
+      fieldsHtml=`<div class="form-grid"><div class="fg"><label class="fl">Legal Name</label><input class="inp" data-field="legalName" value="${esc(n.data.legalName||'')}" placeholder="Registered legal name…"/></div><div class="fg"><label class="fl">Trade Name <span class="fl-opt">(optional)</span></label><input class="inp" data-field="tradeName" value="${esc(n.data.tradeName||'')}" placeholder="DBA / trade name…"/></div><div class="fg"><label class="fl">Registration Number</label><input class="inp" data-field="regNumber" value="${esc(n.data.regNumber||'')}" placeholder="License / reg #…"/></div><div class="fg"><label class="fl">Jurisdiction</label><input class="inp" data-field="jurisdiction" value="${esc(n.data.jurisdiction||'')}" placeholder="e.g. DIFC, ADGM, BVI…"/></div><div class="fg"><label class="fl">Incorporation Date</label><input class="inp" type="date" data-field="incorporationDate" value="${n.data.incorporationDate||''}"/></div><div class="fg"><label class="fl">Entity Type</label><select class="sel" data-field="entityType"><option value="">Select…</option><option value="llc" ${n.data.entityType==='llc'?'selected':''}>LLC</option><option value="fzllc" ${n.data.entityType==='fzllc'?'selected':''}>Free Zone LLC</option><option value="shareholding" ${n.data.entityType==='shareholding'?'selected':''}>Shareholding Co.</option><option value="holding" ${n.data.entityType==='holding'?'selected':''}>Holding Company</option><option value="soleEstablishment" ${n.data.entityType==='soleEstablishment'?'selected':''}>Sole Establishment</option><option value="branch" ${n.data.entityType==='branch'?'selected':''}>Branch</option><option value="trust" ${n.data.entityType==='trust'?'selected':''}>Trust</option><option value="foundation" ${n.data.entityType==='foundation'?'selected':''}>Foundation</option><option value="other" ${n.data.entityType==='other'?'selected':''}>Other</option></select></div><div class="fg fg-full"><label class="fl">Registered Address</label><input class="inp" data-field="address" value="${esc(n.data.address||'')}" placeholder="Full registered address…"/></div><div class="fg fg-full"><label class="fl">Controllers / Directors / Signatories</label><input class="inp" data-field="controllers" value="${esc(n.data.controllers||'')}" placeholder="Directors, managers, authorized signatories…"/></div><div class="fg fg-full"><label class="fl">Notes <span class="fl-opt">(optional)</span></label><textarea class="ta" data-field="notes" placeholder="Additional notes…">${esc(n.data.notes||'')}</textarea></div></div>`;
     }
     return `<div class="step fade-in"><div class="step-header"><div class="step-num ${numCls}">${stepIdx}</div><span class="step-title">Step ${stepIdx} · <span class="step-title-main">${stepLabel}</span></span><div class="step-line"></div><span class="save-flash" id="save-flash-details">✓ saved</span></div><div class="step-body">${fieldsHtml}</div></div>`;
   }
@@ -855,7 +864,7 @@
         if(round2(currentTotal+pct)>100){flashError('add-pct');return;}
         const newId=generateId(type);
         const effPct=round2(pct*n.effPct/100);
-        const defaultData=type==='Individual'?{fullName:name||newId,nationality:'',dob:'',idType:'',idNumber:'',idExpiry:'',address:'',notes:''}:{legalName:name||newId,tradeName:'',regNumber:'',jurisdiction:'',incorporationDate:'',entityType:'',address:'',notes:''};
+        const defaultData=type==='Individual'?{fullName:name||newId,nationality:'',dob:'',idType:'',idNumber:'',idExpiry:'',address:'',notes:''}:{legalName:name||newId,tradeName:'',regNumber:'',jurisdiction:'',incorporationDate:'',entityType:'',address:'',controllers:'',notes:''};
         layers[newId]={id:newId,type,label:name||newId,parentId:n.id,layer:n.layer+1,ownPct:pct,effPct,children:[],data:defaultData};
         const cbIdx=n.children.findIndex(cid=>layers[cid]?.type==='CollectiveBottom');
         if(cbIdx>=0){delete layers[n.children[cbIdx]];n.children.splice(cbIdx,1);}
@@ -990,7 +999,7 @@
 
   function buildEmptyExtracted(n) {
     const isEntity=n.type==='Root'||n.type==='Entity';
-    if(isEntity) return {legalName:'',tradeName:'',regNumber:'',jurisdiction:'',incorporationDate:'',entityType:'',address:''};
+    if(isEntity) return {legalName:'',tradeName:'',regNumber:'',jurisdiction:'',incorporationDate:'',entityType:'',address:'',controllers:'',shareholders:[]};
     return {fullName:'',nationality:'',dob:'',idType:'',idNumber:'',idExpiry:'',address:''};
   }
 
@@ -1028,10 +1037,36 @@
   }
 
   async function llmExtract(ocrText,isEntity) {
-    const entityFields=`{"legalName":"registered legal name","tradeName":"trade name / DBA","regNumber":"registration or license number","jurisdiction":"jurisdiction (e.g. DIFC, ADGM, BVI, Dubai)","incorporationDate":"YYYY-MM-DD format","entityType":"one of: llc, fzllc, shareholding, holding, soleEstablishment, branch, trust, foundation, other","address":"registered address"}`;
-    const individualFields=`{"fullName":"full legal name","nationality":"nationality","dob":"YYYY-MM-DD format","idType":"one of: passport, nationalId, residenceVisa","idNumber":"document/ID number","idExpiry":"YYYY-MM-DD format","address":"residential address"}`;
-    const systemPrompt=`You are a KYB document data extractor. Extract structured fields from OCR text. Return ONLY valid JSON — no markdown, no backticks, no explanation. Use empty string "" for undetectable fields. Dates must be YYYY-MM-DD. Use exact enum values for entityType and idType.`;
-    const userPrompt=`Extract these fields from the OCR text. Return ONLY the JSON object.\n\nFields:\n${isEntity?entityFields:individualFields}\n\nOCR Text:\n${ocrText.substring(0,8000)}`;
+    const entityFields=`{
+  "legalName": "registered legal name of the company",
+  "tradeName": "trade name / DBA if different",
+  "regNumber": "registration or license number",
+  "jurisdiction": "jurisdiction (e.g. DIFC, ADGM, BVI, Dubai mainland)",
+  "incorporationDate": "YYYY-MM-DD format if found",
+  "entityType": "one of: llc, fzllc, shareholding, holding, soleEstablishment, branch, trust, foundation, other",
+  "address": "registered address",
+  "controllers": "comma-separated list of directors, managers, signatories, authorized persons, or controllers mentioned in the document",
+  "shareholders": [
+    {
+      "name": "shareholder name exactly as it appears",
+      "type": "Entity or Individual (infer from context - if it looks like a company name use Entity, if a person name use Individual)",
+      "ownershipPct": 0.00
+    }
+  ]
+}`;
+    const individualFields=`{
+  "fullName": "full legal name",
+  "nationality": "nationality",
+  "dob": "YYYY-MM-DD format if found",
+  "idType": "one of: passport, nationalId, residenceVisa",
+  "idNumber": "document/ID number",
+  "idExpiry": "YYYY-MM-DD format if found",
+  "address": "residential address"
+}`;
+    const systemPrompt = isEntity
+      ? `You are a KYB (Know Your Business) document data extractor. Extract ALL structured fields from the OCR text, including shareholders/owners and controllers/directors. Return ONLY valid JSON — no markdown, no backticks, no explanation. Use empty string "" for text fields you cannot detect. For shareholders, extract EVERY shareholder/owner/partner mentioned with their name, type, and ownership percentage. If percentage is shown as shares (e.g. 500 out of 1000 shares), calculate the percentage. The shareholders array should be empty [] only if no ownership information exists in the text. For controllers, list ALL directors, managers, signatories, partners, or authorized persons found. Dates must be YYYY-MM-DD. Use exact enum values for entityType.`
+      : `You are a KYB document data extractor. Extract structured fields from OCR text. Return ONLY valid JSON — no markdown, no backticks, no explanation. Use empty string "" for undetectable fields. Dates must be YYYY-MM-DD. Use exact enum values for idType.`;
+    const userPrompt=`Extract these fields from the OCR text. Return ONLY the JSON object.\n\nFields:\n${isEntity?entityFields:individualFields}\n\nOCR Text:\n${ocrText.substring(0,12000)}`;
 
     if (apiConfig.provider === 'openai') {
       return await llmExtractOpenAI(systemPrompt, userPrompt);
@@ -1100,16 +1135,80 @@
   function applyExtraction(nodeId) {
     const es=extractState[nodeId];if(!es||!es.extracted)return;
     const n=layers[nodeId];if(!n)return;
+    const isEntity = n.type === 'Root' || n.type === 'Entity';
+
+    // Read reviewed field values from the form
     const reviewFields=mainContent.querySelectorAll('[data-review-field]');
     const reviewed={};
     reviewFields.forEach(f=>{reviewed[f.dataset.reviewField]=f.value;});
     const ext=es.extracted;
+
+    // Apply text fields to node data
     for(const key of Object.keys(ext)){
+      if(key === 'shareholders') continue; // handle separately
       const val=(reviewed[key]!==undefined&&reviewed[key]!=='')?reviewed[key]:ext[key];
       if(val&&String(val).trim()&&n.data.hasOwnProperty(key))n.data[key]=val;
     }
+    // Ensure controllers field exists
+    if(isEntity && !n.data.hasOwnProperty('controllers')) n.data.controllers = '';
+    if(reviewed.controllers !== undefined) n.data.controllers = reviewed.controllers;
+    else if(ext.controllers) n.data.controllers = ext.controllers;
+
     if(n.data.legalName?.trim())n.label=n.data.legalName;
     if(n.data.fullName?.trim())n.label=n.data.fullName;
+
+    // Apply shareholders (entities only)
+    if(isEntity && ext.shareholders && ext.shareholders.length > 0) {
+      // Read edited shareholder values from the review form
+      const shCount = ext.shareholders.length;
+      for(let i = 0; i < shCount; i++) {
+        const includeEl = mainContent.querySelector(`[data-sh-include="${i}"]`);
+        if(includeEl && !includeEl.checked) continue; // unchecked = skip
+
+        const nameEl = mainContent.querySelector(`[data-sh-name="${i}"]`);
+        const typeEl = mainContent.querySelector(`[data-sh-type="${i}"]`);
+        const pctEl = mainContent.querySelector(`[data-sh-pct="${i}"]`);
+
+        const shName = nameEl ? nameEl.value.trim() : (ext.shareholders[i].name || '').trim();
+        const shType = typeEl ? typeEl.value : (ext.shareholders[i].type || 'Individual');
+        const shPct = pctEl ? parseFloat(pctEl.value) : (parseFloat(ext.shareholders[i].ownershipPct) || 0);
+
+        if(!shName || shPct <= 0) continue;
+
+        // Check if this shareholder already exists (by name match)
+        const existingChild = n.children.find(cid => {
+          const c = layers[cid];
+          if(!c || c.type === 'CollectiveBottom') return false;
+          const cName = getName(c).toLowerCase().trim();
+          return cName === shName.toLowerCase().trim();
+        });
+        if(existingChild) continue; // skip duplicates
+
+        // Check total allocation
+        const currentTotal = n.children.reduce((s, cid) => {
+          const c = layers[cid];
+          return s + (c && c.type !== 'CollectiveBottom' ? c.ownPct : 0);
+        }, 0);
+        if(round2(currentTotal + shPct) > 100) continue; // would exceed 100%
+
+        // Create new shareholder node
+        const newId = generateId(shType === 'Individual' ? 'Individual' : 'Entity');
+        const effPct = round2(shPct * n.effPct / 100);
+        const defaultData = shType === 'Individual'
+          ? { fullName: shName, nationality:'', dob:'', idType:'', idNumber:'', idExpiry:'', address:'', notes:'' }
+          : { legalName: shName, tradeName:'', regNumber:'', jurisdiction:'', incorporationDate:'', entityType:'', address:'', controllers:'', notes:'' };
+
+        layers[newId] = { id:newId, type:shType==='Individual'?'Individual':'Entity', label:shName, parentId:n.id, layer:n.layer+1, ownPct:shPct, effPct, children:[], data:defaultData };
+
+        // Remove old CB
+        const cbIdx = n.children.findIndex(cid => layers[cid]?.type === 'CollectiveBottom');
+        if(cbIdx >= 0) { delete layers[n.children[cbIdx]]; n.children.splice(cbIdx, 1); }
+        n.children.push(newId);
+      }
+      // Recalculate collective bottom
+      updateCollectiveBottom(n.id);
+    }
+
     es.appliedToForm=true;
     render();
   }
@@ -1321,6 +1420,7 @@
           { l:'Legal Name', v:d.legalName }, { l:'Trade Name', v:d.tradeName },
           { l:'Reg Number', v:d.regNumber }, { l:'Jurisdiction', v:d.jurisdiction },
           { l:'Incorporation Date', v:d.incorporationDate }, { l:'Entity Type', v:d.entityType },
+          { l:'Controllers', v:d.controllers, full:true },
           { l:'Address', v:d.address, full:true }
         ].map(f => `<div class="summary-field${f.full?' summary-field--full':''}"><span class="summary-field-label">${f.l}</span><span class="summary-field-value ${f.v?'':'empty'}">${esc(f.v)||'—'}</span></div>`).join('');
       }
